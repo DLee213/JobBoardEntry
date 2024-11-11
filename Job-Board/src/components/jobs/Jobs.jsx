@@ -1,32 +1,43 @@
-import {useState, useEffect} from "react"
-import axios from 'axios'
+import { useState, useEffect } from "react";
 
 const Jobs = () => {
-  const [data, setData] = useState();
-  const url = "http://localhost:3000/data"
-
+  const [data, setData] = useState([]);
+  const url = "http://localhost:3000/data";
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await axios.get(url)
-        if (res.status === 200) {
-          setData(JSON.stringify(res.data))
-          
-          console.log(data)
-        }
+    const eventSource = new EventSource(url);
 
-      } catch (err) {
-          console.error(err)
-      }
+    eventSource.onmessage = (event) => {
+      const newJob = JSON.parse(event.data);
+      setData((prevData) => [...prevData, newJob]);
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("EventSource failed:", err);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (data.length > 0) {
+      console.log(data);
     }
-
-    fetchData()
-  }, [])
+  }, [data]);
 
   return (
-    <div>Jobs</div>
-  )
-}
+    <div>
+      <h2>Jobs</h2>
+      <ul>
+        {data.map((job, index) => (
+          <li key={index}>{job.company}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
 
-export default Jobs
+export default Jobs;
